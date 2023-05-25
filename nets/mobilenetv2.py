@@ -1,6 +1,12 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+"""
+@File    :   mobilenetv2.py
+@Time    :   2023/05/25 16:01:53
+@Desc    :    
+"""
 from torch import nn
-from torchvision.models.utils import load_state_dict_from_url
-
+from torch.hub import load_state_dict_from_url
 
 __all__ = ['MobileNetV2', 'mobilenetv2']
 
@@ -18,14 +24,17 @@ def _make_divisible(v, divisor, min_value=None):
         new_v += divisor
     return new_v
 
+
 class ConvBNReLU(nn.Sequential):
     def __init__(self, in_planes, out_planes, kernel_size=3, stride=1, groups=1):
         padding = (kernel_size - 1) // 2
         super(ConvBNReLU, self).__init__(
-            nn.Conv2d(in_planes, out_planes, kernel_size, stride, padding, groups=groups, bias=False),
+            nn.Conv2d(in_planes, out_planes, kernel_size, stride,
+                      padding, groups=groups, bias=False),
             nn.BatchNorm2d(out_planes),
             nn.ReLU6(inplace=True)
         )
+
 
 class InvertedResidual(nn.Module):
     def __init__(self, inp, oup, stride, expand_ratio):
@@ -40,7 +49,8 @@ class InvertedResidual(nn.Module):
         if expand_ratio != 1:
             layers.append(ConvBNReLU(inp, hidden_dim, kernel_size=1))
         layers.extend([
-            ConvBNReLU(hidden_dim, hidden_dim, stride=stride, groups=hidden_dim),
+            ConvBNReLU(hidden_dim, hidden_dim,
+                       stride=stride, groups=hidden_dim),
             nn.Conv2d(hidden_dim, oup, 1, 1, 0, bias=False),
             nn.BatchNorm2d(oup),
         ])
@@ -83,8 +93,10 @@ class MobileNetV2(nn.Module):
             raise ValueError("inverted_residual_setting should be non-empty "
                              "or a 4-element list, got {}".format(inverted_residual_setting))
 
-        input_channel = _make_divisible(input_channel * width_mult, round_nearest)
-        self.last_channel = _make_divisible(last_channel * max(1.0, width_mult), round_nearest)
+        input_channel = _make_divisible(
+            input_channel * width_mult, round_nearest)
+        self.last_channel = _make_divisible(
+            last_channel * max(1.0, width_mult), round_nearest)
 
         # 224, 224, 3 -> 112, 112, 32
         features = [ConvBNReLU(3, input_channel, stride=2)]
@@ -93,11 +105,13 @@ class MobileNetV2(nn.Module):
             output_channel = _make_divisible(c * width_mult, round_nearest)
             for i in range(n):
                 stride = s if i == 0 else 1
-                features.append(block(input_channel, output_channel, stride, expand_ratio=t))
+                features.append(
+                    block(input_channel, output_channel, stride, expand_ratio=t))
                 input_channel = output_channel
 
         # 7, 7, 320 -> 7,7,1280
-        features.append(ConvBNReLU(input_channel, self.last_channel, kernel_size=1))
+        features.append(ConvBNReLU(
+            input_channel, self.last_channel, kernel_size=1))
         self.features = nn.Sequential(*features)
 
         self.classifier = nn.Sequential(
@@ -123,7 +137,7 @@ class MobileNetV2(nn.Module):
         x = x.mean([2, 3])
         x = self.classifier(x)
         return x
-    
+
     def freeze_backbone(self):
         for param in self.features.parameters():
             param.requires_grad = False
@@ -137,12 +151,12 @@ def mobilenetv2(pretrained=False, progress=True, num_classes=1000):
     model = MobileNetV2()
     if pretrained:
         state_dict = load_state_dict_from_url(model_urls['mobilenetv2'], model_dir='./model_data',
-                                            progress=progress)
+                                              progress=progress)
         model.load_state_dict(state_dict)
 
-    if num_classes!=1000:
+    if num_classes != 1000:
         model.classifier = nn.Sequential(
-                nn.Dropout(0.2),
-                nn.Linear(model.last_channel, num_classes),
-            )
+            nn.Dropout(0.2),
+            nn.Linear(model.last_channel, num_classes),
+        )
     return model

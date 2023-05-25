@@ -1,6 +1,6 @@
 import torch
 import torch.nn as nn
-from torchvision.models.utils import load_state_dict_from_url
+from torch.hub import load_state_dict_from_url
 
 model_urls = {
     'resnet18': 'https://download.pytorch.org/models/resnet18-5c106cde.pth',
@@ -29,9 +29,11 @@ class BasicBlock(nn.Module):
         if norm_layer is None:
             norm_layer = nn.BatchNorm2d
         if groups != 1 or base_width != 64:
-            raise ValueError('BasicBlock only supports groups=1 and base_width=64')
+            raise ValueError(
+                'BasicBlock only supports groups=1 and base_width=64')
         if dilation > 1:
-            raise NotImplementedError("Dilation > 1 not supported in BasicBlock")
+            raise NotImplementedError(
+                "Dilation > 1 not supported in BasicBlock")
         # Both self.conv1 and self.downsample layers downsample the input when stride != 1
         self.conv1 = conv3x3(inplanes, planes, stride)
         self.bn1 = norm_layer(planes)
@@ -62,6 +64,7 @@ class BasicBlock(nn.Module):
 
 class Bottleneck(nn.Module):
     expansion = 4
+
     def __init__(self, inplanes, planes, stride=1, downsample=None, groups=1,
                  base_width=64, dilation=1, norm_layer=None):
         super(Bottleneck, self).__init__()
@@ -122,7 +125,7 @@ class ResNet(nn.Module):
         if len(replace_stride_with_dilation) != 3:
             raise ValueError("replace_stride_with_dilation should be None "
                              "or a 3-element tuple, got {}".format(replace_stride_with_dilation))
-            
+
         self.block = block
         self.groups = groups
         self.base_width = width_per_group
@@ -135,7 +138,7 @@ class ResNet(nn.Module):
 
         # 112,112,64 -> 56,56,64
         self.maxpool = nn.MaxPool2d(kernel_size=3, stride=2, padding=1)
-        
+
         # 56,56,64 -> 56,56,256
         self.layer1 = self._make_layer(block, 64, layers[0])
 
@@ -153,13 +156,14 @@ class ResNet(nn.Module):
 
         # 7,7,2048 -> 2048
         self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
-        
+
         # 2048 -> num_classes
         self.fc = nn.Linear(512 * block.expansion, num_classes)
 
         for m in self.modules():
             if isinstance(m, nn.Conv2d):
-                nn.init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='relu')
+                nn.init.kaiming_normal_(
+                    m.weight, mode='fan_out', nonlinearity='relu')
             elif isinstance(m, (nn.BatchNorm2d, nn.GroupNorm)):
                 nn.init.constant_(m.weight, 1)
                 nn.init.constant_(m.bias, 0)
@@ -211,18 +215,21 @@ class ResNet(nn.Module):
         x = self.fc(x)
 
         return x
-    
+
     def freeze_backbone(self):
-        backbone = [self.conv1, self.bn1, self.layer1, self.layer2, self.layer3, self.layer4]
+        backbone = [self.conv1, self.bn1, self.layer1,
+                    self.layer2, self.layer3, self.layer4]
         for module in backbone:
             for param in module.parameters():
                 param.requires_grad = False
 
     def Unfreeze_backbone(self):
-        backbone = [self.conv1, self.bn1, self.layer1, self.layer2, self.layer3, self.layer4]
+        backbone = [self.conv1, self.bn1, self.layer1,
+                    self.layer2, self.layer3, self.layer4]
         for module in backbone:
             for param in module.parameters():
                 param.requires_grad = True
+
 
 def resnet18(pretrained=False, progress=True, num_classes=1000):
     model = ResNet(BasicBlock, [2, 2, 2, 2])
@@ -231,9 +238,10 @@ def resnet18(pretrained=False, progress=True, num_classes=1000):
                                               progress=progress)
         model.load_state_dict(state_dict)
 
-    if num_classes!=1000:
+    if num_classes != 1000:
         model.fc = nn.Linear(512 * model.block.expansion, num_classes)
     return model
+
 
 def resnet34(pretrained=False, progress=True, num_classes=1000):
     model = ResNet(BasicBlock, [3, 4, 6, 3])
@@ -242,9 +250,10 @@ def resnet34(pretrained=False, progress=True, num_classes=1000):
                                               progress=progress)
         model.load_state_dict(state_dict)
 
-    if num_classes!=1000:
+    if num_classes != 1000:
         model.fc = nn.Linear(512 * model.block.expansion, num_classes)
     return model
+
 
 def resnet50(pretrained=False, progress=True, num_classes=1000):
     model = ResNet(Bottleneck, [3, 4, 6, 3])
@@ -253,9 +262,10 @@ def resnet50(pretrained=False, progress=True, num_classes=1000):
                                               progress=progress)
         model.load_state_dict(state_dict)
 
-    if num_classes!=1000:
+    if num_classes != 1000:
         model.fc = nn.Linear(512 * model.block.expansion, num_classes)
     return model
+
 
 def resnet101(pretrained=False, progress=True, num_classes=1000):
     model = ResNet(Bottleneck, [3, 4, 23, 3])
@@ -264,9 +274,10 @@ def resnet101(pretrained=False, progress=True, num_classes=1000):
                                               progress=progress)
         model.load_state_dict(state_dict)
 
-    if num_classes!=1000:
+    if num_classes != 1000:
         model.fc = nn.Linear(512 * model.block.expansion, num_classes)
     return model
+
 
 def resnet152(pretrained=False, progress=True, num_classes=1000):
     model = ResNet(Bottleneck, [3, 8, 36, 3])
@@ -275,6 +286,6 @@ def resnet152(pretrained=False, progress=True, num_classes=1000):
                                               progress=progress)
         model.load_state_dict(state_dict)
 
-    if num_classes!=1000:
+    if num_classes != 1000:
         model.fc = nn.Linear(512 * model.block.expansion, num_classes)
     return model
